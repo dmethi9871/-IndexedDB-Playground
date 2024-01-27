@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IndexedDB Example</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      transition: background-color 0.3s ease-in-out;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 10px 0;
+    }
+
+    li {
+      background-color: #fff;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>IndexedDB Example</h1>
+  <button onclick="addBook()">Add Book</button>
+  <button onclick="getAllBooks()">Get All Books</button>
+
+  <ul id="bookList"></ul>
+
+  <script>
+    
+    const dbName = "libraryDB";
+    const dbVersion = 1;
+    const request = indexedDB.open(dbName, dbVersion);
+
+    request.onerror = function (event) {
+      console.error("Error opening database:", event.target.errorCode);
+    };
+
+    request.onupgradeneeded = function (event) {
+      const db = event.target.result;
+
+      
+      const objectStore = db.createObjectStore("books", { keyPath: "id", autoIncrement: true });
+
+      
+      objectStore.createIndex("title", "title", { unique: false });
+      objectStore.createIndex("author", "author", { unique: false });
+    };
+
+    request.onsuccess = function (event) {
+      const db = event.target.result;
+
+      
+      function addBook() {
+        const title = prompt("Enter book title:");
+        const author = prompt("Enter book author:");
+
+        const transaction = db.transaction(["books"], "readwrite");
+        const objectStore = transaction.objectStore("books");
+
+        const newBook = { title, author };
+        const request = objectStore.add(newBook);
+
+        request.onsuccess = function () {
+          console.log("Book added successfully!");
+        };
+
+        request.onerror = function (event) {
+          console.error("Error adding book:", event.target.errorCode);
+        };
+      }
+
+     
+      function getAllBooks() {
+        const transaction = db.transaction(["books"], "readonly");
+        const objectStore = transaction.objectStore("books");
+
+        const request = objectStore.openCursor();
+        const bookList = document.getElementById("bookList");
+
+        bookList.innerHTML = ""; 
+
+        request.onsuccess = function (event) {
+          const cursor = event.target.result;
+
+          if (cursor) {
+            const listItem = document.createElement("li");
+            listItem.textContent = `${cursor.value.title} by ${cursor.value.author}`;
+            bookList.appendChild(listItem);
+            cursor.continue();
+          } else {
+            console.log("Books retrieved successfully!");
+          }
+        };
+
+        request.onerror = function (event) {
+          console.error("Error getting books:", event.target.errorCode);
+        };
+      }
+
+      window.addBook = addBook;
+      window.getAllBooks = getAllBooks;
+    };
+  </script>
+</body>
+</html>
